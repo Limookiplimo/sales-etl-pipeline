@@ -1,0 +1,37 @@
+[products]
+
+    [[products.product]]
+    p_name = "Ajab homebaking 2kg"
+    price = 2100
+
+    [[products.product]]
+    p_name = "Pembe homebaking 2kg"
+    price = 2050
+
+    [[products.product]]
+    p_name ="Ajab homebaking 1kg"
+    price = 2120
+
+    [[products.product]]
+    p_name ="Pembe homebaking 1kg"
+    price = 2070
+
+
+[customers]
+
+    [[customers.customer]]
+    c_name = "First customer"
+    crm = "CRM001"
+
+    [[customers.customer]]
+    c_name = "Second Customer"
+    crm = "CRM002"
+
+    [[customers.customer]]
+    c_name = "Third Customer"
+    crm = "CRM003"
+
+    [[customers.customer]]
+    c_name = "Fourth Customer"
+    crm = "CRM004"
+
