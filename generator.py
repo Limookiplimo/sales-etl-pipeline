@@ -58,7 +58,7 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 2000
+    num_orders = 20
     create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","order_number VARCHAR(255)","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
