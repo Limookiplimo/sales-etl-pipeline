@@ -1,5 +1,6 @@
 import psycopg2
 from confluent_kafka import Producer
+import time
 
 
 def extract_sales_data():
@@ -8,9 +9,8 @@ def extract_sales_data():
         with conn.cursor() as cur:
             cur.execute(f"select * from invoices")
             invoices = cur.fetchall()
-
             # Kafka configuration
-            conf = {'bootstrap.servers': '172.21.0.2','client.id': 'python-producer'}
+            conf = {'bootstrap.servers': '0.0.0.0:9092',}
             producer = Producer(conf)
             kafka_topic = "extracts"
 
@@ -18,9 +18,8 @@ def extract_sales_data():
                 key = str(invoice[0])
                 value = ','.join(map(str, invoice))
                 producer.produce(kafka_topic, key=key, value=value)
+                
                 producer.flush()
                     
-                print(f"Data loaded to {kafka_topic} successfully.")
-
-
+            print(f"Data loaded to {kafka_topic} successfully.")
 
