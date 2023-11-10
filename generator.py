@@ -9,6 +9,7 @@ data = tomli.loads(data_path.read_text())
 products = data['products']['product']
 customers = data['customers']['customer']
 order_num = 1
+invoice_inv = 0
 
 def create_orders_table(table_name, columns):
     with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
@@ -21,11 +22,24 @@ def load_orders_table(table_name, orders):
             cur.executemany(f"insert into {table_name} values({','.join(['%s'] * len(orders[0]))})", orders)
             conn.commit()
 
+def get_item_count():
+    with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"select count(*) from invoices")
+            count = cur.fetchone()[0]
+    return count
+
 def generate_order_number():
     global order_num
     order_number = f"ORD{order_num:003d}"
     order_num += 1
     return order_number
+
+def generate_invoice_number():
+    global invoice_inv
+    invoice_number = f"1{invoice_inv:0005d}"
+    invoice_inv += 1
+    return invoice_number
 
 def generate_order_products():
     customer = random.choice(customers)
@@ -33,33 +47,34 @@ def generate_order_products():
     selected_products = random.sample(products, num_products)
 
     order_data = []
-    order = {
-        "customer_name": customer["c_name"],
-        "crm": customer["crm"],
-        "order_number": generate_order_number(),
-        "date": datetime.now(),
-    }
-    total_price = 0
-    
+    order_num = generate_order_number()
+    line_num = get_item_count() + 1
+    line_number = int(line_num)
+    invoice_number = generate_invoice_number()
+
     for product in selected_products:
         quantity = random.randint(1, 5)
         price = product["price"]
-        total_price += quantity * price
+        total_price = quantity * price
         order_data.append((
-            order["customer_name"],
-            order["crm"],
-            order["order_number"],
-            order["date"],
+            customer["c_name"],
+            customer["crm"],
+            order_num,
+            invoice_number,
+            line_number,
+            datetime.now(),
             product["p_name"],
             quantity,
             price,
             total_price
         ))
+        line_number += 1
+        
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 20
-    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","order_number VARCHAR(255)","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
+    num_orders = 2000
+    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
     for _ in range(num_orders):
@@ -67,16 +82,4 @@ if __name__ == "__main__":
         invoice_data.extend(order_data)
     
     load_orders_table("invoices", invoice_data)
-
-
-
-    
-
-
-
-
-
-
-
-
 
