@@ -12,14 +12,16 @@ def extract_sales_data():
             # Kafka configuration
             conf = {'bootstrap.servers': '0.0.0.0:9092',}
             producer = Producer(conf)
-            kafka_topic = "extracts"
+            kafka_extracts_topic = "extracts"
+            kafka_staging_topic = "staging"
+            
 
             for invoice in invoices:
                 key = str(invoice[0])
                 value = ','.join(map(str, invoice))
-                producer.produce(kafka_topic, key=key, value=value)
+                producer.produce(kafka_extracts_topic, key=key, value=value)
                 
                 producer.flush()
                     
-            print(f"Data loaded to {kafka_topic} successfully.")
+            print(f"Data loaded to {kafka_extracts_topic} successfully.")
 
