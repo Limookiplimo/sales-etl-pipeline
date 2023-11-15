@@ -2,18 +2,22 @@
 
     [[products.product]]
     p_name = "Ajab homebaking 2kg"
+    p_code = "AJA002"
     price = 2100
 
     [[products.product]]
     p_name = "Pembe homebaking 2kg"
+    p_code = "PEM002"
     price = 2050
 
     [[products.product]]
     p_name ="Ajab homebaking 1kg"
+    p_code = "AJA001"
     price = 2120
 
     [[products.product]]
     p_name ="Pembe homebaking 1kg"
+    p_code = "PEM001"
     price = 2070
 
 
