@@ -55,7 +55,9 @@ def generate_order_products():
     for product in selected_products:
         quantity = random.randint(1, 5)
         price = product["price"]
+        weight = product["weight"]
         total_price = quantity * price
+        total_weight = quantity * weight
         order_data.append((
             customer["c_name"],
             customer["crm"],
@@ -66,9 +68,13 @@ def generate_order_products():
             line_number,
             datetime.now(),
             product["p_name"],
+            product["p_code"],
             quantity,
+            weight,
+            total_weight,
             price,
-            total_price
+            total_price,
+
         ))
         line_number += 1
         
@@ -76,7 +82,7 @@ def generate_order_products():
 
 if __name__ == "__main__":
     num_orders = 3
-    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
+    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)", "product_code VARCHAR(255)","quantity INTEGER","weight FLOAT","total_weight FLOAT","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
     for _ in range(num_orders):
