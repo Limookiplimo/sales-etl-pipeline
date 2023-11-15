@@ -59,6 +59,8 @@ def generate_order_products():
         order_data.append((
             customer["c_name"],
             customer["crm"],
+            customer["credit_limit"],
+            customer["location"],
             order_num,
             invoice_number,
             line_number,
@@ -73,8 +75,8 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 2000
-    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
+    num_orders = 3
+    create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)","quantity INTEGER","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
     for _ in range(num_orders):
