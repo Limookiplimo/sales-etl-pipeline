@@ -22,16 +22,24 @@
     [[customers.customer]]
     c_name = "First customer"
     crm = "CRM001"
+    location = "Mombasa road"
+    credit_limit = 1500000
 
     [[customers.customer]]
     c_name = "Second Customer"
     crm = "CRM002"
+    location = "CBD"
+    credit_limit = 1000000
 
     [[customers.customer]]
     c_name = "Third Customer"
     crm = "CRM003"
+    location = "Mombasa road"
+    credit_limit = 2000000
 
     [[customers.customer]]
     c_name = "Fourth Customer"
     crm = "CRM004"
+    location = "Eastleigh"
+    credit_limit = 4000000
 
