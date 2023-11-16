@@ -81,7 +81,7 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 3
+    num_orders = 5
     create_orders_table("invoices", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)", "product_code VARCHAR(255)","quantity INTEGER","weight FLOAT","total_weight FLOAT","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
