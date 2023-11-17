@@ -80,6 +80,8 @@ services:
       APPLICATION_SECRET: "random-secret"
     command: -Dpidfile.path=/dev/null 
 
+# REMOVE AFTER TRIAL 
+
   jobmanager:
     image: flink:latest
     ports:
