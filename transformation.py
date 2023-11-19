@@ -92,7 +92,7 @@ def process_kafka_messages(message, cursor, invoice_totals, invoice_weights, pro
         cursor.connection.rollback()
 
 def kafka_consumer_loop(consumer, cursor, invoice_totals, invoice_weights, product_counts):
-    consumer.subscribe(['postgres.public.invoices'])
+    consumer.subscribe(['c'])
     while True:
         msg = consumer.poll(1.0)
         if msg is None:
@@ -121,5 +121,4 @@ if __name__ == "__main__":
         kafka_consumer.close()
         postgres_cursor.close()
         postgres_conn.close()
-        
 
