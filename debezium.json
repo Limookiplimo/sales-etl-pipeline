@@ -1,9 +1,9 @@
 {
-    "name": "invoice-connector",
+    "name": "trans-connector",
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
         "plugin.name": "pgoutput",
-        "database.hostname": "172.21.0.2",
+        "database.hostname": "172.19.0.2",
         "database.port": "5432",
         "database.user": "user",
         "database.password": "password",
@@ -15,7 +15,7 @@
         "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
         "value.converter": "org.apache.kafka.connect.json.JsonConverter",
         "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-        "table.include.list": "public.invoices",
-        "slot.name": "dbz_invoice_slot"
+        "table.include.list": "public.transactions",
+        "slot.name": "dbz_trans_slot"
     }
 }
