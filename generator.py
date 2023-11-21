@@ -49,8 +49,8 @@ def generate_order_products():
 
     order_data = []
     order_num = generate_order_number()
-    line_num = get_item_count() + 1
-    line_number = int(line_num)
+    #line_num = get_item_count() + 1
+    #line_number = int(line_num)
     invoice_number = generate_invoice_number()
 
     for product in selected_products:
@@ -66,7 +66,6 @@ def generate_order_products():
             customer["location"],
             order_num,
             invoice_number,
-            line_number,
             datetime.now(),
             product["p_name"],
             product["p_code"],
@@ -77,19 +76,19 @@ def generate_order_products():
             total_price,
 
         ))
-        line_number += 1
+        # line_number += 1
         
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 5
-    create_orders_table("transactions", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","line_number INTEGER","date DATE","product_name VARCHAR(255)", "product_code VARCHAR(255)","quantity INTEGER","weight FLOAT","total_weight FLOAT","price FLOAT","total_price FLOAT"])
+    num_orders = 30
+    create_orders_table("transactions", ["customer_name VARCHAR(255)","crm VARCHAR(255)","credit_limit FLOAT","location VARCHAR(255)","order_number VARCHAR(255)","invoice_number INTEGER","date DATE","product_name VARCHAR(255)", "product_code VARCHAR(255)","quantity INTEGER","weight FLOAT","total_weight FLOAT","price FLOAT","total_price FLOAT"])
     
     invoice_data = []
     for _ in range(num_orders):
         order_data = generate_order_products()
         invoice_data.extend(order_data)
-        time.sleep(1)
+        #time.sleep(1)
     
     load_orders_table("transactions", invoice_data)
 
