@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   postgres:
-    image: postgres:13-alpine
+    image: postgres:latest
     restart: always
     environment:
       POSTGRES_USER: user
@@ -29,6 +29,7 @@ services:
 
   kafka:
     image: confluentinc/cp-enterprise-kafka:5.5.3
+    restart: always
     depends_on:
       - zookeeper
 
@@ -44,6 +45,7 @@ services:
 
   debezium:
     image: debezium/connect:1.4
+    restart: always
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: 1
@@ -59,6 +61,7 @@ services:
 
   schema-registry:
     image: confluentinc/cp-schema-registry:5.5.3
+    restart: always
     environment:
       - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
       - SCHEMA_REGISTRY_HOST_NAME=schema-registry
