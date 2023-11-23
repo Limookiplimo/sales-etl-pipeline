@@ -1,2 +1,6 @@
-.env
+env
 misc
+.env
+credentials.json
+debezium.json
+__pycache__
