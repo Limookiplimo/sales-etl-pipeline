@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:13.13
     restart: always
     environment:
       POSTGRES_USER: user
@@ -10,17 +10,6 @@ services:
       POSTGRES_DB: etl_pipeline
     ports:
       - "5432:5432"
-
-  mysql:
-    image: mysql:latest
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: etl_pipeline
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
-    ports:
-      - "3306:3306"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:5.5.3
@@ -32,7 +21,6 @@ services:
     restart: always
     depends_on:
       - zookeeper
-
     ports:
       - 29092:29092
     environment:
@@ -41,7 +29,6 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-
 
   debezium:
     image: debezium/connect:1.4
