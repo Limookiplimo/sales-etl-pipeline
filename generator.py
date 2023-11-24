@@ -3,7 +3,7 @@ import pathlib
 import random
 from datetime import datetime
 import psycopg2
-import time
+import pytz
 
 data_path = pathlib.Path(__file__).parent /"data.toml"
 data = tomli.loads(data_path.read_text())
@@ -11,6 +11,7 @@ products = data['products']['product']
 customers = data['customers']['customer']
 order_num = 1
 invoice_inv = 0
+local_timezone = pytz.timezone("Africa/Nairobi")
 
 def create_orders_table(table_name, columns):
     with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
@@ -22,13 +23,6 @@ def load_orders_table(table_name, orders):
         with conn.cursor() as cur:
             cur.executemany(f"insert into {table_name} values({','.join(['%s'] * len(orders[0]))})", orders)
             conn.commit()
-
-# def get_item_count():
-#     with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
-#         with conn.cursor() as cur:
-#             cur.execute(f"select count(*) from transactions")
-#             count = cur.fetchone()[0]
-#     return count
 
 def generate_order_number():
     global order_num
@@ -57,6 +51,7 @@ def generate_order_products():
         weight = product["weight"]
         total_price = quantity * price
         total_weight = quantity * weight
+        current_datetime = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S")
         order_data.append((
             customer["c_name"],
             customer["crm"],
@@ -64,7 +59,7 @@ def generate_order_products():
             customer["location"],
             order_num,
             invoice_number,
-            datetime.now(),
+            current_datetime,
             product["p_name"],
             product["p_code"],
             quantity,
@@ -72,28 +67,26 @@ def generate_order_products():
             total_weight,
             price,
             total_price,
-
         ))
-        
     return order_data
 
 if __name__ == "__main__":
     num_orders = 1
     create_orders_table("transactions", 
-                            ["customer_name VARCHAR(255)",
-                            "crm VARCHAR(255)",
-                            "credit_limit FLOAT",
-                            "location VARCHAR(255)",
-                            "order_number VARCHAR(255)",
-                            "invoice_number INTEGER",
-                            "date DATE",
-                            "product_name VARCHAR(255)",
-                            "product_code VARCHAR(255)",
-                            "quantity INTEGER",
-                            "weight FLOAT",
-                            "total_weight FLOAT",
-                            "price FLOAT",
-                            "total_price FLOAT"])
+                        ["customer_name VARCHAR(255)",
+                        "crm VARCHAR(255)",
+                        "credit_limit FLOAT",
+                        "location VARCHAR(255)",
+                        "order_number VARCHAR(255)",
+                        "invoice_number INTEGER",
+                        "date TIMESTAMP",
+                        "product_name VARCHAR(255)",
+                        "product_code VARCHAR(255)",
+                        "quantity INTEGER",
+                        "weight FLOAT",
+                        "total_weight FLOAT",
+                        "price FLOAT",
+                        "total_price FLOAT"])
     invoice_data = []
     for _ in range(num_orders):
         order_data = generate_order_products()
