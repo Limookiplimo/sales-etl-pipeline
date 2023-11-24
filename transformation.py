@@ -1,124 +1,138 @@
-from confluent_kafka import Consumer, KafkaError
-from collections import defaultdict
-from datetime import date, timedelta
-import psycopg2
-from psycopg2 import sql
-import json
+from google.cloud import bigquery
+import os, json, shutil
+from dotenv import load_dotenv
+load_dotenv()
+credentials = json.loads(os.environ.get("CREDENTIALS"))
+if os.path.exists("credentials.json"):
+    pass
+else:
+    with open("credentials.json", "w") as cred:
+        json.dump(credentials, cred)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = 'credentials.json'
+dataset_id = os.environ.get("DATASET_ID")
+project_id = credentials.get("project_id")
+client = bigquery.Client(project=project_id)
 
 
-def connect_kafka_consumer():
-    kafka_config = {
-        'bootstrap.servers': '172.19.0.6:29092',
-        'group.id': 'invoice-group',
-        'auto.offset.reset': 'earliest'
-    }
-    return Consumer(kafka_config)
+from pyspark.sql.functions import from_json, col, sum, from_unixtime, minute, hour, dayofmonth, weekofyear,month, year
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, FloatType
 
-def connect_postgres():
-    with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
-        return conn
+def create_spark_session():
+    return SparkSession.builder \
+        .appName("SalesProcessing") \
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0")\
+        .getOrCreate()
+    
+def read_kafka_data(spark, bootstrap_servers, topic):
+    return spark \
+        .readStream \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers",bootstrap_servers) \
+        .option("subscribe",topic) \
+        .load()
 
-def load_customer_features(cursor, customer_data):
-    #name, crm, location, credit_limit
-    query = sql.SQL("insert into customers (customer_name, crm, credit_limit, location) values ({},{},{},{});").format(
-        sql.Literal(customer_data['customer_name']),
-        sql.Literal(customer_data['crm']),
-        sql.Literal(customer_data['credit_limit']),
-        sql.Literal(customer_data['location'])
-    )
-    cursor.execute(query)
+def parse_kafka_data(df):
+    return df.selectExpr("CAST (key AS STRING)", "CAST(value AS STRING)")
 
-def load_sales_features(cursor, sales_data, invoice_totals):
-    #inv, date, amt, crm
-    date_value = date(1970, 1, 1) + timedelta(days=sales_data['date'])
-    query = sql.SQL("insert into sales (invoice_number, date, total_amount, crm) values ({},{},{},{});").format(
-        sql.Literal(sales_data['invoice_number']),
-        sql.Literal(date_value),
-        sql.Literal(invoice_totals[sales_data['invoice_number']]),
-        sql.Literal(sales_data['crm'])
-    )
-    cursor.execute(query)
+def schema_define():
+    return StructType([
+        StructField('customer_name', StringType(), True),
+        StructField('crm', StringType(), True),
+        StructField('credit_limit', FloatType(), True),
+        StructField('location', StringType(), True),
+        StructField('order_number', StringType(), True),
+        StructField('invoice_number', IntegerType(), True),
+        StructField('date', IntegerType(), True),
+        StructField('product_name', StringType(),True), 
+        StructField('product_code', StringType(), True),
+        StructField('quantity', IntegerType(), True),
+        StructField('weight', FloatType(), True),
+        StructField('total_weight', FloatType(), True),
+        StructField('price', FloatType(), True),
+        StructField('total_price', FloatType(), True)])
 
-def load_account_features(cursor, accounts_data, invoice_totals):
-    #inv, inv_date, amount, payment, balance
-    date_value = date(1970, 1, 1) + timedelta(days=accounts_data['date'])
-    query = sql.SQL("insert into accounts (invoice_number, date, total_amount) values ({},{},{});").format(
-        sql.Literal(accounts_data['invoice_number']),
-        sql.Literal(date_value),
-        sql.Literal(invoice_totals[accounts_data['invoice_number']])
-    )
-    cursor.execute(query)
+def apply_schema(df, schema):
+    return df.select(from_json(col("value"), schema).alias("data")).select("data.*")
 
-def load_inventory_track(cursor, inventory_data, product_counts):
-    #date, product_code, quantity
-    date_value = date(1970, 1, 1) + timedelta(days=inventory_data['date'])
-    query = sql.SQL("insert into inventory (product_name, product_code, quantity, date) values({},{},{},{});").format(
-        sql.Literal(inventory_data['product_name']),
-        sql.Literal(inventory_data['product_code']),
-        sql.Literal(product_counts[inventory_data['product_code']]),
-        sql.Literal(date_value)
-    )
-    cursor.execute(query)
+def write_to_temporary_storage(df, temp_storage_path):
+    df.writeStream \
+        .format("parquet") \
+        .outputMode("append") \
+        .option("path", temp_storage_path) \
+        .option("checkpointLocation", f"./{temp_storage_path}_checkpoint") \
+        .start()
 
-def load_logistics_features(cursor, logistic_data, invoice_weights):
-    #inv, weight, crm, location
-    query = sql.SQL("insert into logistics (invoice_number, total_weight, crm, location) values({},{},{},{});").format(
-        sql.Literal(logistic_data['invoice_number']),
-        sql.Literal(invoice_weights[logistic_data['invoice_number']]),
-        sql.Literal(logistic_data['crm']),
-        sql.Literal(logistic_data['location'])
-    )
-    cursor.execute(query)
+def read_from_temporary_storage(spark, temp_storage_path):
+    return spark.read.parquet(temp_storage_path)
 
-def process_kafka_messages(message, cursor, invoice_totals, invoice_weights, product_counts):
-    try:
-        kafka_data = json.loads(message.value())
-        invoice_totals[kafka_data['invoice_number']] += kafka_data['total_price']
-        invoice_weights[kafka_data['invoice_number']] += kafka_data['total_weight']
-        product_counts[kafka_data['product_code']] += kafka_data['quantity']
+def write_to_bigquery(df, table_name, project_id, dataset_id):
+    df.writeStream \
+        .outputMode("update") \
+        .format("bigquery") \
+        .option("table", f"{project_id}:{dataset_id}.{table_name}") \
+        .option("checkpointLocation", f"./{table_name}_checkpoint") \
+        .start()\
+        .awaitTermination()
 
-        load_customer_features(cursor, kafka_data)
-        load_sales_features(cursor, kafka_data, invoice_totals)
-        load_account_features(cursor, kafka_data, invoice_totals)
-        load_inventory_track(cursor, kafka_data, product_counts)
-        load_logistics_features(cursor, kafka_data, invoice_weights)
+def sales_fact(df):
+    return df.groupBy("invoice_number", "product_code", "date_timestamp") \
+        .agg(sum("total_price").alias("total_amount"),
+             sum("total_weight").alias("total_weight"))\
+        .withWatermark('date_timestamp', '1 minutes')
 
-        cursor.connection.commit()
+def time_dim(df):
+    return df.select("date_timestamp", "hour", "minute", "day", "week", "month", "year").distinct()
 
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-    except psycopg2.Error as e:
-        print(f"Error executing SQL query: {e}")
-        cursor.connection.rollback()
+def customer_dim(df):
+    return df.select("crm", "customer_name", "credit_limit", "location").distinct()
 
-def kafka_consumer_loop(consumer, cursor, invoice_totals, invoice_weights, product_counts):
-    consumer.subscribe(['c'])
-    while True:
-        msg = consumer.poll(1.0)
-        if msg is None:
-            continue
-        if msg.error():
-            if msg.error().code() == KafkaError._PARTITION_EOF:
-                continue
-            else:
-                print(msg.error())
-                break
-        process_kafka_messages(msg, cursor, invoice_totals, invoice_weights, product_counts)
+def invoice_dim(df):
+    return df.groupBy("invoice_number", "date_timestamp", "crm") \
+        .agg(sum("total_price").alias("total_amount"))\
+        .withWatermark('date_timestamp', '1 minutes')
 
-if __name__ == "__main__":
-    kafka_consumer = connect_kafka_consumer()
-    postgres_conn = connect_postgres()
-    postgres_cursor = postgres_conn.cursor()
-    invoice_totals = defaultdict(float)
-    invoice_weights = defaultdict(float)
-    product_counts = defaultdict(int)
+def logistics_dim(df):
+    return df.select("invoice_number", "crm", "location").distinct()
 
-    try:
-        kafka_consumer_loop(kafka_consumer, postgres_cursor, invoice_totals, invoice_weights, product_counts)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        kafka_consumer.close()
-        postgres_cursor.close()
-        postgres_conn.close()
+def product_dim(df):
+    return df.select("product_name","product_code", "weight").distinct()
 
+def inventory_track_dim(df):
+    return df.groupBy("product_code", "date_timestamp") \
+        .agg(sum("quantity").alias("total_quantity"))\
+        .withWatermark('date_timestamp', '1 minutes')
+
+def main_transformations():
+    spark = create_spark_session()
+    df = read_kafka_data(spark, "localhost:29092", "postgres.public.transactions")
+    parsed_data = parse_kafka_data(df)
+    schema = schema_define()
+    df_with_schema = apply_schema(parsed_data, schema)
+    df_with_schema = df_with_schema.withColumn("date_timestamp", from_unixtime(col("date") * 1000000).cast("Timestamp"))
+    df_with_schema = df_with_schema.withColumn("hour", hour(df_with_schema.date_timestamp)) \
+                                   .withColumn("minute", minute(df_with_schema.date_timestamp)) \
+                                   .withColumn("day", dayofmonth(df_with_schema.date_timestamp)) \
+                                   .withColumn("week", weekofyear(df_with_schema.date_timestamp)) \
+                                   .withColumn("month", month(df_with_schema.date_timestamp)) \
+                                   .withColumn("year", year(df_with_schema.date_timestamp))
+    
+    temp_storage_path = "./temporary_storage"
+    write_to_temporary_storage(df_with_schema, temp_storage_path)
+    batch_data = read_from_temporary_storage(spark, temp_storage_path)
+
+    sales_df = sales_fact(batch_data)
+    time_df = time_dim(batch_data)
+    customer_df = customer_dim(batch_data)
+    invoice_df = invoice_dim(batch_data)
+    logistics_df = logistics_dim(batch_data)
+    product_df = product_dim(batch_data)
+    inventory_df = inventory_track_dim(batch_data)
+
+    sales_df.printSchema()
+    sales_df.show(5)
+
+    shutil.rmtree(temp_storage_path)
+
+if __name__== "__main__":
+    main_transformations()
