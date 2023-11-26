@@ -51,7 +51,7 @@ def generate_order_products():
         weight = product["weight"]
         total_price = quantity * price
         total_weight = quantity * weight
-        current_datetime = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S")
+        current_datetime = datetime.now(local_timezone)
         order_data.append((
             customer["c_name"],
             customer["crm"],
@@ -59,7 +59,8 @@ def generate_order_products():
             customer["location"],
             order_num,
             invoice_number,
-            current_datetime,
+            current_datetime.date(),
+            current_datetime.time(),
             product["p_name"],
             product["p_code"],
             quantity,
@@ -71,7 +72,7 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 2
+    num_orders = 1
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
@@ -79,7 +80,8 @@ if __name__ == "__main__":
                         "location VARCHAR(255)",
                         "order_number VARCHAR(255)",
                         "invoice_number INTEGER",
-                        "date TIMESTAMP",
+                        "order_date DATE",
+                        "order_time TIME",
                         "product_name VARCHAR(255)",
                         "product_code VARCHAR(255)",
                         "quantity INTEGER",
