@@ -1,9 +1,9 @@
 {
-    "name": "trans-connector",
+    "name": "transaction-connector",
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
         "plugin.name": "pgoutput",
-        "database.hostname": "172.20.0.4",
+        "database.hostname": "172.18.0.2",
         "database.port": "5432",
         "database.user": "user",
         "database.password": "password",
@@ -16,6 +16,6 @@
         "value.converter": "org.apache.kafka.connect.json.JsonConverter",
         "key.converter": "org.apache.kafka.connect.json.JsonConverter",
         "table.include.list": "public.transactions",
-        "slot.name": "dbz_trans_slot"
+        "slot.name": "dbz_transaction_slot"
     }
 }
