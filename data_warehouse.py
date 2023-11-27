@@ -16,15 +16,14 @@ client = bigquery.Client(project=project_id)
 sales_fact_schema = [
     bigquery.SchemaField("invoice_number", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("product_code", "STRING", mode="REQUIRED"),
-    bigquery.SchemaField("date_timestamp", "TIMESTAMP", mode="REQUIRED"),
+    bigquery.SchemaField("order_date", "TIMESTAMP", mode="REQUIRED"),
     bigquery.SchemaField("total_amount", "FLOAT", mode="REQUIRED"),
     bigquery.SchemaField("total_weight", "FLOAT", mode="REQUIRED"),
 ]
 
 time_schema = [
     bigquery.SchemaField("date_timestamp", "TIMESTAMP", mode="REQUIRED"),
-    bigquery.SchemaField("hour", "INTEGER", mode="REQUIRED"),
-    bigquery.SchemaField("minute", "INTEGER", mode="REQUIRED"),
+    bigquery.SchemaField("order_time", "TIMESTAMP", mode="NULLABLE"),
     bigquery.SchemaField("day", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("week", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("month", "INTEGER", mode="REQUIRED"),
@@ -40,7 +39,7 @@ customer_schema = [
 
 invoice_schema = [
     bigquery.SchemaField("invoice_number", "INTEGER", mode="REQUIRED"),
-    bigquery.SchemaField("date_timestamp", "TIMESTAMP", mode="REQUIRED"),
+    bigquery.SchemaField("order_date", "TIMESTAMP", mode="REQUIRED"),
     bigquery.SchemaField("crm", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("total_amount", "FLOAT", mode="REQUIRED"),
     bigquery.SchemaField("payment_received", "FLOAT", mode="NULLABLE"),
@@ -61,7 +60,7 @@ product_schema = [
 
 inventory_track_schema = [
     bigquery.SchemaField("product_code", "STRING", mode="REQUIRED"),
-    bigquery.SchemaField("date", "TIMESTAMP", mode="REQUIRED"),
+    bigquery.SchemaField("order_date", "TIMESTAMP", mode="REQUIRED"),
     bigquery.SchemaField("total_quantity", "INTEGER", mode="REQUIRED"),
 ]
 
