@@ -72,7 +72,7 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 1
+    num_orders = 10
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
