@@ -1,5 +1,6 @@
 from google.cloud import bigquery
-import os, json, shutil
+
+import os, json
 from dotenv import load_dotenv
 load_dotenv()
 credentials = json.loads(os.environ.get("CREDENTIALS"))
@@ -13,10 +14,9 @@ dataset_id = os.environ.get("DATASET_ID")
 project_id = credentials.get("project_id")
 client = bigquery.Client(project=project_id)
 
-
 from pyspark.sql.functions import from_json, col, sum, from_unixtime, dayofmonth, weekofyear,month, year, date_format
-from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, FloatType
+from pyspark.sql import SparkSession
 
 def create_spark_session():
     return SparkSession.builder \
@@ -35,7 +35,7 @@ def read_kafka_data(spark, bootstrap_servers, topic):
 def parse_kafka_data(df):
     return df.selectExpr("CAST (key AS STRING)", "CAST(value AS STRING)")
 
-def schema_define():
+def kafka_schema_define():
     return StructType([
         StructField('customer_name', StringType(), True),
         StructField('crm', StringType(), True),
@@ -55,26 +55,6 @@ def schema_define():
 
 def apply_schema(df, schema):
     return df.select(from_json(col("value"), schema).alias("data")).select("data.*")
-
-def write_to_temporary_storage(df, temp_storage_path):
-    df.writeStream \
-        .format("parquet") \
-        .outputMode("append") \
-        .option("path", temp_storage_path) \
-        .option("checkpointLocation", f"./{temp_storage_path}_checkpoint") \
-        .start()
-
-def read_from_temporary_storage(spark, temp_storage_path):
-    return spark.read.parquet(temp_storage_path)
-
-def write_to_bigquery(df, table_name, project_id, dataset_id):
-    df.writeStream \
-        .outputMode("update") \
-        .format("bigquery") \
-        .option("table", f"{project_id}:{dataset_id}.{table_name}") \
-        .option("checkpointLocation", f"./{table_name}_checkpoint") \
-        .start()\
-        .awaitTermination()
 
 def sales_fact(df):
     return df.groupBy("invoice_number", "product_code", "order_date") \
@@ -100,12 +80,12 @@ def product_dim(df):
 def inventory_track_dim(df):
     return df.groupBy("product_code", "order_date") \
         .agg(sum("quantity").alias("total_quantity"))
-
+ 
 def main_transformations():
     spark = create_spark_session()
     df = read_kafka_data(spark, "localhost:29092", "postgres.public.transactions")
     parsed_data = parse_kafka_data(df)
-    schema = schema_define()
+    schema = kafka_schema_define()
     applied_schema = apply_schema(parsed_data, schema)
     df_with_schema = applied_schema \
         .withColumn("order_date", from_unixtime(col("order_date") * 86400).cast("date"))\
@@ -115,10 +95,6 @@ def main_transformations():
                                    .withColumn("month", month(df_with_schema.order_date)) \
                                    .withColumn("year", year(df_with_schema.order_date))
     
-    temp_storage_path = "./temporary_storage"
-    write_to_temporary_storage(df_with_schema, temp_storage_path)
-    batch_data = read_from_temporary_storage(spark, temp_storage_path)
-
     sales_df = sales_fact(df_with_schema)
     time_df = time_dim(df_with_schema)
     customer_df = customer_dim(df_with_schema)
@@ -127,10 +103,20 @@ def main_transformations():
     product_df = product_dim(df_with_schema)
     inventory_df = inventory_track_dim(df_with_schema)
 
-    sales_df.printSchema()
-    sales_df.show(5)
+    sales_query = sales_df.writeStream.outputMode("complete").format("console").start()
+    time_query = time_df.writeStream.format("console").start()
+    customer_query = customer_df.writeStream.format("console").start()
+    invoices_query = invoice_df.writeStream.outputMode("complete").format("console").start()
+    logistics_query = logistics_df.writeStream.format("console").start()
+    products_query = product_df.writeStream.format("console").start()
+    inventory_query = inventory_df.writeStream.outputMode("complete").format("console").start()
 
-    shutil.rmtree(temp_storage_path)
+    sales_query.awaitTermination()
+    time_query.awaitTermination()
+    customer_query.awaitTermination()
+    invoices_query.awaitTermination()
+    logistics_query.awaitTermination()
+    products_query.awaitTermination()
+    inventory_query.awaitTermination()
 
-if __name__== "__main__":
-    main_transformations()
+main_transformations()
