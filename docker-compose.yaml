@@ -10,6 +10,16 @@ services:
     ports:
       - "5432:5432"
 
+  cassandra:
+    image: cassandra:latest
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=sales_etl
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    volumes:
+      - ./tmp/cassandra
+
   zookeeper:
     image: confluentinc/cp-zookeeper:5.5.3
     environment:
