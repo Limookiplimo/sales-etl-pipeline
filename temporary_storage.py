@@ -1,7 +1,7 @@
 from cassandra.cluster import Cluster
 
 # Connect to Cassandra
-cluster = Cluster(['172.18.0.3'])
+cluster = Cluster(['172.20.0.2'])
 session = cluster.connect()
 
 # Create keyspace
@@ -19,7 +19,8 @@ tables = [
             invoice_number INT PRIMARY KEY,
             product_code TEXT,
             order_date DATE,
-            total_amount FLOAT
+            total_amount FLOAT,
+            total_weight FLOAT
         )
     """),
 
