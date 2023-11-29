@@ -50,6 +50,7 @@ logistics_schema = [
     bigquery.SchemaField("invoice_number", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("crm", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("location", "STRING", mode="REQUIRED"),
+    bigquery.SchemaField("total_weight", "FLOAT", mode="REQUIRED"),
 ]
 
 product_schema = [
