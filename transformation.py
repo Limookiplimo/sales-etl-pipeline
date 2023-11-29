@@ -10,13 +10,17 @@ INVOICES_TABLE = "invoices"
 LOGISTICS_TABLE = "logistics"
 PRODUCTS_TABLE = "products"
 INVENTORY_TABLE = "inventory_track"
+CASSANDRA_HOST = "172.20.0.2"
+CASSANDRA_PORT = "9042"
+KAFKA_SERVER = "localhost:29092"
+KAFKA_TOPIC = "postgres.public.transactions"
 
 def create_spark_session():
     return SparkSession.builder \
         .appName("SalesProcessing") \
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0")\
-        .config("spark.cassandra.connection.host", "172.18.0.3") \
-        .config("spark.cassandra.connection.port", "9042") \
+        .config("spark.cassandra.connection.host", CASSANDRA_HOST) \
+        .config("spark.cassandra.connection.port", CASSANDRA_PORT) \
         .getOrCreate()
     
 def read_kafka_data(spark, bootstrap_servers, topic):
@@ -53,7 +57,8 @@ def apply_schema(df, schema):
 
 def sales_fact(df):
     return df.groupBy("invoice_number", "product_code", "order_date") \
-        .agg(sum("total_price").alias("total_amount"))
+        .agg(sum("total_price").alias("total_amount"),
+             sum("total_weight").alias("total_weight"))
 
 def time_dim(df):
     return df.select("order_date", "order_time", "day", "week", "month", "year")
@@ -66,7 +71,7 @@ def invoice_dim(df):
         .agg(sum("total_price").alias("total_amount"))
 
 def logistics_dim(df):
-    return df.select("invoice_number", "crm", "location") \
+    return df.groupby("invoice_number", "crm", "location") \
         .agg(sum("total_weight").alias("total_weight"))
 
 def product_dim(df):
@@ -76,7 +81,7 @@ def inventory_track_dim(df):
     return df.groupBy("product_code", "order_date") \
         .agg(sum("quantity").alias("total_quantity"))
 
-def write_to_intermediate_storage(df, table, keyspace):
+def write_aggregations_to_intermediate_storage(df, table, keyspace):
     return df \
         .writeStream \
         .outputMode("complete") \
@@ -88,14 +93,25 @@ def write_to_intermediate_storage(df, table, keyspace):
                       .save()) \
         .start()
 
+def write_to_intermediate_storage(df, table, keyspace):
+    return df \
+        .writeStream \
+        .outputMode("append") \
+        .foreachBatch(lambda df, epoch_id: df.write.format("org.apache.spark.sql.cassandra") \
+                      .mode("overwrite") \
+                      .option("confirm.truncate", "true") \
+                      .option("keyspace", keyspace) \
+                      .option("table", table) \
+                      .save()) \
+        .start()
 def main_transformations():
     spark = create_spark_session()
-    df = read_kafka_data(spark, "localhost:29092", "postgres.public.transactions")
+    df = read_kafka_data(spark, KAFKA_SERVER, KAFKA_TOPIC)
     parsed_data = parse_kafka_data(df)
     schema = kafka_schema_define()
     applied_schema = apply_schema(parsed_data, schema)
     df_with_schema = applied_schema \
-        .withColumn("order_date", from_unixtime(col("order_date") * 86400).cast("date"))\
+        .withColumn("order_date", from_unixtime(col("order_date") * 86400).cast("date")) \
         .withColumn("order_time", date_format(from_unixtime(col("order_time") * 100000), "HH:mm:ss"))
     df_with_schema = df_with_schema.withColumn("day", dayofmonth(df_with_schema.order_date)) \
                                    .withColumn("week", weekofyear(df_with_schema.order_date)) \
@@ -110,13 +126,13 @@ def main_transformations():
     product_df = product_dim(df_with_schema)
     inventory_df = inventory_track_dim(df_with_schema)
 
-    sales_query = write_to_intermediate_storage(sales_df, SALES_TABLE, CASSANDRA_KEYSPACE)
+    sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, CASSANDRA_KEYSPACE)
     time_query = write_to_intermediate_storage(time_df, TIME_TABLE, CASSANDRA_KEYSPACE)
     customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, CASSANDRA_KEYSPACE)
-    invoices_query = write_to_intermediate_storage(invoice_df, INVOICES_TABLE, CASSANDRA_KEYSPACE)
-    logistics_query = write_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, CASSANDRA_KEYSPACE)
+    invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, CASSANDRA_KEYSPACE)
+    logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, CASSANDRA_KEYSPACE)
     products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, CASSANDRA_KEYSPACE)
-    inventory_query = write_to_intermediate_storage(inventory_df, INVENTORY_TABLE, CASSANDRA_KEYSPACE)
+    inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, CASSANDRA_KEYSPACE)
 
     sales_query.awaitTermination()
     time_query.awaitTermination()
@@ -125,3 +141,5 @@ def main_transformations():
     logistics_query.awaitTermination()
     products_query.awaitTermination()
     inventory_query.awaitTermination()
+
+main_transformations()
