@@ -4,7 +4,7 @@ import random
 from datetime import datetime
 import psycopg2
 import pytz
-import time
+
 
 data_path = pathlib.Path(__file__).parent /"data.toml"
 data = tomli.loads(data_path.read_text())
@@ -73,7 +73,7 @@ def generate_order_products():
     return order_data
 
 if __name__ == "__main__":
-    num_orders = 100000
+    num_orders = 1000000
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
@@ -94,7 +94,5 @@ if __name__ == "__main__":
     for _ in range(num_orders):
         order_data = generate_order_products()
         invoice_data.extend(order_data)
-
-    
     load_orders_table("transactions", invoice_data)
-    time.sleep(1)
+    
