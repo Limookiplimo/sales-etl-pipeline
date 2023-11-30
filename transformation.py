@@ -1,8 +1,16 @@
 from pyspark.sql.functions import from_json, col, sum, from_unixtime, dayofmonth, weekofyear,month, year, date_format
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, FloatType
 from pyspark.sql import SparkSession
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-CASSANDRA_KEYSPACE = "sales_etl_keyspace"
+cassandra_keyspace = os.environ.get("CASSANDRA_KEYSPACE")
+cassandra_host = os.environ.get("CASSANDRA_HOST")
+cassandra_port = os.environ.get("CASSANDRA_PORT")
+kafka_server = os.environ.get("KAFKA_SERVER")
+kafka_topic = "postgres.public.transactions"
+
 SALES_TABLE = "sales"
 TIME_TABLE = "time"
 CUSTOMER_TABLE = "customer"
@@ -10,17 +18,13 @@ INVOICES_TABLE = "invoices"
 LOGISTICS_TABLE = "logistics"
 PRODUCTS_TABLE = "products"
 INVENTORY_TABLE = "inventory_track"
-CASSANDRA_HOST = "172.20.0.2"
-CASSANDRA_PORT = "9042"
-KAFKA_SERVER = "localhost:29092"
-KAFKA_TOPIC = "postgres.public.transactions"
 
 def create_spark_session():
     return SparkSession.builder \
         .appName("SalesProcessing") \
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0")\
-        .config("spark.cassandra.connection.host", CASSANDRA_HOST) \
-        .config("spark.cassandra.connection.port", CASSANDRA_PORT) \
+        .config("spark.cassandra.connection.host", cassandra_host) \
+        .config("spark.cassandra.connection.port", cassandra_port) \
         .getOrCreate()
     
 def read_kafka_data(spark, bootstrap_servers, topic):
@@ -106,7 +110,7 @@ def write_to_intermediate_storage(df, table, keyspace):
         .start()
 def main_transformations():
     spark = create_spark_session()
-    df = read_kafka_data(spark, KAFKA_SERVER, KAFKA_TOPIC)
+    df = read_kafka_data(spark, kafka_server, kafka_topic)
     parsed_data = parse_kafka_data(df)
     schema = kafka_schema_define()
     applied_schema = apply_schema(parsed_data, schema)
@@ -126,13 +130,13 @@ def main_transformations():
     product_df = product_dim(df_with_schema)
     inventory_df = inventory_track_dim(df_with_schema)
 
-    sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, CASSANDRA_KEYSPACE)
-    time_query = write_to_intermediate_storage(time_df, TIME_TABLE, CASSANDRA_KEYSPACE)
-    customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, CASSANDRA_KEYSPACE)
-    invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, CASSANDRA_KEYSPACE)
-    logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, CASSANDRA_KEYSPACE)
-    products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, CASSANDRA_KEYSPACE)
-    inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, CASSANDRA_KEYSPACE)
+    sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, cassandra_keyspace)
+    time_query = write_to_intermediate_storage(time_df, TIME_TABLE, cassandra_keyspace)
+    customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, cassandra_keyspace)
+    invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, cassandra_keyspace)
+    logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, cassandra_keyspace)
+    products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, cassandra_keyspace)
+    inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, cassandra_keyspace)
 
     sales_query.awaitTermination()
     time_query.awaitTermination()
@@ -142,4 +146,3 @@ def main_transformations():
     products_query.awaitTermination()
     inventory_query.awaitTermination()
 
-main_transformations()
