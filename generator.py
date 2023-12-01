@@ -2,9 +2,17 @@ import tomli
 import pathlib
 import random
 from datetime import datetime
-import psycopg2
 import pytz
+import psycopg2
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
+host = os.environ.get("POSTGRES_HOST")
+port = os.environ.get("POSTGRES_PORT")
+database = os.environ.get("POSTGRESQL_DB")
+user = os.environ.get("POSTGRES_USER")
+password = os.environ.get("POSTGRES_PASSWORD")
 
 data_path = pathlib.Path(__file__).parent /"data.toml"
 data = tomli.loads(data_path.read_text())
@@ -15,12 +23,12 @@ invoice_inv = 0
 local_timezone = pytz.timezone("Africa/Nairobi")
 
 def create_orders_table(table_name, columns):
-    with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
+    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
         with conn.cursor() as cur:
             cur.execute(f"create table if not exists {table_name}({','.join(columns)})")
 
 def load_orders_table(table_name, orders):
-    with psycopg2.connect(host="localhost", port=5432, database="etl_pipeline", user="user", password="password") as conn:
+    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
         with conn.cursor() as cur:
             cur.executemany(f"insert into {table_name} values({','.join(['%s'] * len(orders[0]))})", orders)
             conn.commit()
@@ -94,6 +102,6 @@ def load_to_database():
     for _ in range(num_orders):
         order_data = generate_order_products()
         invoice_data.extend(order_data)
-        
+
     load_orders_table("transactions", invoice_data)
     
