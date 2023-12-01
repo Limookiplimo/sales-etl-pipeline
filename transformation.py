@@ -36,7 +36,8 @@ def read_kafka_data(spark, bootstrap_servers, topic):
         .load()
 
 def parse_kafka_data(df):
-    return df.selectExpr("CAST (key AS STRING)", "CAST(value AS STRING)")
+    return df \
+        .selectExpr("CAST (key AS STRING)", "CAST(value AS STRING)")
 
 def kafka_schema_define():
     return StructType([
@@ -57,33 +58,48 @@ def kafka_schema_define():
         StructField('total_price', FloatType(), True)])
 
 def apply_schema(df, schema):
-    return df.select(from_json(col("value"), schema).alias("data")).select("data.*")
+    return df \
+        .select(from_json(col("value"), schema)
+            .alias("data")) \
+        .select("data.*")
 
 def sales_fact(df):
-    return df.groupBy("invoice_number", "product_code", "order_date") \
-        .agg(sum("total_price").alias("total_amount"),
-             sum("total_weight").alias("total_weight"))
+    return df \
+        .groupBy("invoice_number", "product_code", "order_date") \
+        .agg(sum("total_price")
+                .alias("total_amount"),
+             sum("total_weight")
+                .alias("total_weight"))
 
 def time_dim(df):
-    return df.select("order_date", "order_time", "day", "week", "month", "year")
+    return df \
+        .select("order_date", "order_time", "day", "week", "month", "year")
 
 def customer_dim(df):
-    return df.select("crm", "customer_name", "credit_limit", "location")
+    return df \
+        .select("crm", "customer_name", "credit_limit", "location")
 
 def invoice_dim(df):
-    return df.groupBy("invoice_number", "order_date", "crm") \
-        .agg(sum("total_price").alias("total_amount"))
+    return df \
+        .groupBy("invoice_number", "order_date", "crm") \
+        .agg(sum("total_price")
+            .alias("total_amount"))
 
 def logistics_dim(df):
-    return df.groupby("invoice_number", "crm", "location") \
-        .agg(sum("total_weight").alias("total_weight"))
+    return df \
+        .groupby("invoice_number", "crm", "location") \
+        .agg(sum("total_weight")
+            .alias("total_weight"))
 
 def product_dim(df):
-    return df.select("product_name","product_code", "weight")
+    return df \
+        .select("product_name","product_code", "weight")
 
 def inventory_track_dim(df):
-    return df.groupBy("product_code", "order_date") \
-        .agg(sum("quantity").alias("total_quantity"))
+    return df \
+        .groupBy("product_code", "order_date") \
+        .agg(sum("quantity")
+             .alias("total_quantity"))
 
 def write_aggregations_to_intermediate_storage(df, table, keyspace):
     return df \
@@ -108,6 +124,7 @@ def write_to_intermediate_storage(df, table, keyspace):
                       .option("table", table) \
                       .save()) \
         .start()
+
 def main_transformations():
     spark = create_spark_session()
     df = read_kafka_data(spark, kafka_server, kafka_topic)
