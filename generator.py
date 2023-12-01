@@ -72,7 +72,7 @@ def generate_order_products():
         ))
     return order_data
 
-if __name__ == "__main__":
+def load_to_database():
     num_orders = 1000000
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
@@ -94,5 +94,6 @@ if __name__ == "__main__":
     for _ in range(num_orders):
         order_data = generate_order_products()
         invoice_data.extend(order_data)
+        
     load_orders_table("transactions", invoice_data)
     
