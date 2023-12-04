@@ -6,7 +6,9 @@ import pytz
 import psycopg2
 from dotenv import load_dotenv
 import os
+import time
 load_dotenv()
+
 
 host = os.environ.get("POSTGRES_HOST")
 port = os.environ.get("POSTGRES_PORT")
@@ -81,7 +83,7 @@ def generate_order_products():
     return order_data
 
 def load_to_database():
-    num_orders = 1000000
+    num_orders = 10
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
@@ -102,6 +104,7 @@ def load_to_database():
     for _ in range(num_orders):
         order_data = generate_order_products()
         invoice_data.extend(order_data)
+        load_orders_table("transactions", invoice_data)
 
-    load_orders_table("transactions", invoice_data)
-    
+load_to_database()
+
