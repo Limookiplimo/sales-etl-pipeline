@@ -104,7 +104,5 @@ def load_to_database():
         order_data = generate_order_products()
         invoice_data.extend(order_data)
         load_orders_table("transactions", invoice_data)
-    
-print("Connecting to the database...")
-with psycopg2.connect(host="172.19.0.2", port=5432, database=database, user=user, password=password) as conn:
-    print("Connected to the database.")
+
+load_to_database()

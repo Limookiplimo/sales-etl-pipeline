@@ -163,3 +163,5 @@ def main_transformations():
     products_query.awaitTermination()
     inventory_query.awaitTermination()
 
+
+main_transformations()
