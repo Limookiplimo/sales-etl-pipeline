@@ -42,7 +42,7 @@ def create_spark_session():
     return SparkSession.builder \
         .appName("CassandraToBigQuery") \
         .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0") \
-        .config("spark.cassandra.connection.host", cassandra_host) \
+        .config("spark.cassandra.connection.host", "172.18.0.7") \
         .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "./credentials.json") \
         .getOrCreate()
 
@@ -80,3 +80,4 @@ def main_loading_process():
     load_cassandra_to_bigquery(spark, INVENTORY_TABLE, inventory_dim)
     load_cassandra_to_bigquery(spark, PRODUCTS_TABLE, products_dim)
 
+main_loading_process()

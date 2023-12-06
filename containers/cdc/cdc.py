@@ -23,7 +23,7 @@ connector_config = {
     }
 }
 
-debezium_api_url = "http://localhost:8083/connectors"
+debezium_api_url = "http://debezium:8083/connectors"
 
 def create_debezium_connector(config):
     headers = {
