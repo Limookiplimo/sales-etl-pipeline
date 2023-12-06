@@ -6,7 +6,7 @@ connector_config = {
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
         "plugin.name": "pgoutput",
-        "database.hostname": "172.18.0.4",
+        "database.hostname": "172.18.0.8",
         "database.port": "5432",
         "database.user": "user",
         "database.password": "password",
@@ -37,5 +37,4 @@ def create_debezium_connector(config):
         print(f"Failed to create Debezium Connector. Status Code: {response.status_code}")
         print(response.text)
 
-if __name__ == "__main__":
-    create_debezium_connector(connector_config)
+create_debezium_connector(connector_config)
