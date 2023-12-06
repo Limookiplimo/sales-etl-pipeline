@@ -15,7 +15,7 @@ else:
         json.dump(credentials, cred)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = 'credentials.json'
 
-project_id = credentials.get("project_id")
+project_id =  os.environ.get("PROJECT_ID")
 client = bigquery.Client(project=project_id)
 
 dataset_id = os.environ.get("DATASET_ID")
