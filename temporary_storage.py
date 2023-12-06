@@ -1,4 +1,5 @@
 from cassandra.cluster import Cluster
+from cassandra import AlreadyExists
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -6,29 +7,29 @@ load_dotenv()
 cassandra_host = [os.environ.get("CASSANDRA_HOST")]
 cassandra_keyspace = os.environ.get("CASSANDRA_KEYSPACE")
 
-SALES_TABLE = "sales"
-TIME_TABLE = "time"
-CUSTOMER_TABLE = "customer"
-INVOICES_TABLE = "invoices"
-LOGISTICS_TABLE = "logistics"
-PRODUCTS_TABLE = "products"
-INVENTORY_TABLE = "inventory_track"
-
 def connect_to_cassandra(contact_points):
     cluster = Cluster(contact_points)
     session = cluster.connect()
     return cluster, session
 
 def create_keyspace(session, keyspace):
-    keyspace_query = """
-            CREATE KEYSPACE IF NOT EXISTS sales_etl_keyspace
-            WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
-        """
-    session.execute(keyspace_query)
-    session.set_keyspace(keyspace)
+    keyspace_query = f"""
+        CREATE KEYSPACE IF NOT EXISTS {keyspace}
+        WITH replication = {{'class': 'SimpleStrategy', 'replication_factor': 1}}
+    """
+    try:
+        session.execute(keyspace_query)
+        session.set_keyspace(keyspace)
+        print(f"Keyspace {keyspace} created successfully.")
+    except AlreadyExists:
+        print(f"Keyspace {keyspace} already exists.")
 
 def create_table(session, table_name, table_query):
-    session.execute(table_query)
+    try:
+        session.execute(table_query)
+        print(f"Table {table_name} created successfully.")
+    except AlreadyExists:
+        print(f"Table {table_name} already exists.")
 
 def intermediate_storage_processes():
     cluster, session = connect_to_cassandra(cassandra_host)
@@ -106,3 +107,5 @@ def intermediate_storage_processes():
 
     session.shutdown()
     cluster.shutdown()
+
+intermediate_storage_processes()
