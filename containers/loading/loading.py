@@ -21,6 +21,7 @@ client = bigquery.Client(project=project_id)
 dataset_id = os.environ.get("DATASET_ID")
 project = os.environ.get("PROJECT")
 cassandra_host = os.environ.get("CASSANDRA_HOST")
+cassandra_port = os.environ.get("CASSANDRA_PORT")
 cassandra_keyspace = os.environ.get("CASSANDRA_KEYSPACE")
 fact_table =os.environ.get("FACT_TABLE")
 customer_dim = os.environ.get("CUSTOMER_DIMENSION")
@@ -42,7 +43,7 @@ def create_spark_session():
     return SparkSession.builder \
         .appName("CassandraToBigQuery") \
         .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0") \
-        .config("spark.cassandra.connection.host", "172.18.0.7") \
+        .config("spark.cassandra.connection.host", cassandra_host) \
         .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "./credentials.json") \
         .getOrCreate()
 
