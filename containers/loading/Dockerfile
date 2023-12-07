@@ -1,4 +1,4 @@
-FROM jupyter/pyspark-notebook:latest
+FROM apache/spark:3.5.0
 
 USER 0
 
