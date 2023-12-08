@@ -85,3 +85,16 @@ services:
       ZK_HOSTS: "zookeeper:2181"
       APPLICATION_SECRET: "random-secret"
     command: -Dpidfile.path=/dev/null 
+
+  mage:
+        image: elestio/mage-ai:latest
+        container_name: mage_ai
+        restart: always
+        environment:
+            - REQUIRE_USER_AUTHENTICATION=1
+        volumes:
+            - './data:/home/src'
+            - './mage_data:/root/.mage_data'
+            - './pipeline.yaml:/home/src/pipeline.yaml'
+        ports:
+            - 6789:6789

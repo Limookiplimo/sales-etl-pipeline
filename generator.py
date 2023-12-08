@@ -6,7 +6,6 @@ import pytz
 import psycopg2
 from dotenv import load_dotenv
 import os
-import time
 load_dotenv()
 
 
@@ -20,8 +19,6 @@ data_path = pathlib.Path(__file__).parent /"data.toml"
 data = tomli.loads(data_path.read_text())
 products = data['products']['product']
 customers = data['customers']['customer']
-order_num = 1
-invoice_inv = 0
 local_timezone = pytz.timezone("Africa/Nairobi")
 
 def create_orders_table(table_name, columns):
@@ -35,16 +32,17 @@ def load_orders_table(table_name, orders):
             cur.executemany(f"insert into {table_name} values({','.join(['%s'] * len(orders[0]))})", orders)
             conn.commit()
 
-def generate_order_number():
-    global order_num
-    order_number = f"ORD{order_num:003d}"
-    order_num += 1
-    return order_number
+def get_last_invoice_number():
+    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
+        with conn.cursor() as cur:
+            cur.execute("select count(distinct invoice_number) from transactions")
+            result = cur.fetchone()[0]
+            return result if result else 0
 
 def generate_invoice_number():
-    global invoice_inv
-    invoice_number = f"1{invoice_inv:0005d}"
-    invoice_inv += 1
+    last_invoice_number = get_last_invoice_number()
+    last_invoice_number += 1
+    invoice_number = f"INV{last_invoice_number:0005d}"
     return invoice_number
 
 def generate_order_products():
@@ -53,7 +51,6 @@ def generate_order_products():
     selected_products = random.sample(products, num_products)
 
     order_data = []
-    order_num = generate_order_number()
     invoice_number = generate_invoice_number()
 
     for product in selected_products:
@@ -68,7 +65,6 @@ def generate_order_products():
             customer["crm"],
             customer["credit_limit"],
             customer["location"],
-            order_num,
             invoice_number,
             current_datetime.date(),
             current_datetime.time(),
@@ -83,14 +79,13 @@ def generate_order_products():
     return order_data
 
 def load_to_database():
-    num_orders = 10
+    num_orders = 2
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
                         "credit_limit FLOAT",
                         "location VARCHAR(255)",
-                        "order_number VARCHAR(255)",
-                        "invoice_number INTEGER",
+                        "invoice_number VARCHAR(255)",
                         "order_date DATE",
                         "order_time TIME",
                         "product_name VARCHAR(255)",
@@ -105,6 +100,7 @@ def load_to_database():
         order_data = generate_order_products()
         invoice_data.extend(order_data)
         load_orders_table("transactions", invoice_data)
-
+        
 load_to_database()
+
 
