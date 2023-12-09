@@ -1,15 +1,35 @@
 version: "3.9"
+x-airflow-common:
+  &airflow-common
+  # build: .
+  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:latest}
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+  user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
+  depends_on:
+    airflow-db:
+      condition: service_healthy
 
 services:
-  postgres:
+  piper_db:
     image: postgres:13.13
-    container_name: postgres
+    container_name: piper_db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: etl_pipeline
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   cassandra:
     image: cassandra:latest
@@ -86,15 +106,48 @@ services:
       APPLICATION_SECRET: "random-secret"
     command: -Dpidfile.path=/dev/null 
 
-  mage:
-        image: elestio/mage-ai:latest
-        container_name: mage_ai
-        restart: always
-        environment:
-            - REQUIRE_USER_AUTHENTICATION=1
-        volumes:
-            - './data:/home/src'
-            - './mage_data:/root/.mage_data'
-            - './pipeline.yaml:/home/src/pipeline.yaml'
-        ports:
-            - 6789:6789
+  airflow-db:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/airflow_data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - 8080:8080
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_UPGRADE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-user}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-user}
+
+volumes:
+  postgres-db-volume: {}
