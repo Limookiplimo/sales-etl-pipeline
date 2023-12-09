@@ -1,24 +1,4 @@
 version: "3.9"
-x-airflow-common:
-  &airflow-common
-  # build: .
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:latest}
-  environment:
-    &airflow-common-env
-    AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
-    AIRFLOW__CORE__FERNET_KEY: ''
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
-  volumes:
-    - ./dags:/opt/airflow/dags
-    - ./logs:/opt/airflow/logs
-    - ./plugins:/opt/airflow/plugins
-  user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
-  depends_on:
-    airflow-db:
-      condition: service_healthy
 
 services:
   piper_db:
@@ -92,62 +72,57 @@ services:
       - 8081:8081
     depends_on: [zookeeper, kafka]
   
-  kafka_manager:
-    image: hlebalbau/kafka-manager:stable
-    container_name: kafka_manager
-    restart: always
-    ports:
-      - "9000:9000"
-    depends_on:
-      - zookeeper
-      - kafka
+  postgresql:
+    image: 'bitnami/postgresql:latest'
     environment:
-      ZK_HOSTS: "zookeeper:2181"
-      APPLICATION_SECRET: "random-secret"
-    command: -Dpidfile.path=/dev/null 
-
-  airflow-db:
-    image: postgres:alpine
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      - POSTGRESQL_DATABASE=bitnami_airflow
+      - POSTGRESQL_USERNAME=bn_airflow
+      - POSTGRESQL_PASSWORD=bitnami1
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/airflow_data
-    ports:
-      - 5432:5432
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 5s
-      retries: 5
-    restart: always
+      - airflow-db-volume:/bitnami/postgresql
 
-  airflow-webserver:
-    <<: *airflow-common
-    command: webserver
-    ports:
-      - 8080:8080
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    restart: always
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - airflow-db-volume:/bitnami
+
+  airflow-worker:
+    image: bitnami/airflow-worker:latest
+    environment:
+      - AIRFLOW_FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW_SECRET_KEY=a25mQ1FHTUh3MnFRSk5KMEIyVVU2YmN0VGRyYTVXY08=
+      - AIRFLOW_EXECUTOR=CeleryExecutor
+      - AIRFLOW_DATABASE_NAME=bitnami_airflow
+      - AIRFLOW_DATABASE_USERNAME=bn_airflow
+      - AIRFLOW_DATABASE_PASSWORD=bitnami1
 
   airflow-scheduler:
-    <<: *airflow-common
-    command: scheduler
+    image: bitnami/airflow-scheduler:latest
     restart: always
-
-  airflow-init:
-    <<: *airflow-common
-    command: version
     environment:
-      <<: *airflow-common-env
-      _AIRFLOW_DB_UPGRADE: 'true'
-      _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-user}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-user}
+      - AIRFLOW_FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW_SECRET_KEY=a25mQ1FHTUh3MnFRSk5KMEIyVVU2YmN0VGRyYTVXY08=
+      - AIRFLOW_EXECUTOR=CeleryExecutor
+      - AIRFLOW_DATABASE_NAME=bitnami_airflow
+      - AIRFLOW_DATABASE_USERNAME=bn_airflow
+      - AIRFLOW_DATABASE_PASSWORD=bitnami1
+
+  airflow:
+    image: bitnami/airflow:latest
+    environment:
+      - AIRFLOW_FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW_SECRET_KEY=a25mQ1FHTUh3MnFRSk5KMEIyVVU2YmN0VGRyYTVXY08=
+      - AIRFLOW_EXECUTOR=CeleryExecutor
+      - AIRFLOW_DATABASE_NAME=bitnami_airflow
+      - AIRFLOW_DATABASE_USERNAME=bn_airflow
+      - AIRFLOW_DATABASE_PASSWORD=bitnami1
+      - AIRFLOW_PASSWORD=bitnami123
+      - AIRFLOW_USERNAME=user
+      - AIRFLOW_EMAIL=user@example.com
+    ports:
+      - '8080:8080'
 
 volumes:
-  postgres-db-volume: {}
+  airflow-db-volume: {}
