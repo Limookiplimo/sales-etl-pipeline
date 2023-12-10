@@ -5,8 +5,8 @@ from google.cloud import bigquery
 import os
 import json
 from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 credentials = json.loads(os.environ.get("CREDENTIALS"))
 if os.path.exists("credentials.json"):
     pass
@@ -14,7 +14,6 @@ else:
     with open("credentials.json", "w") as cred:
         json.dump(credentials, cred)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = 'credentials.json'
-
 project_id = credentials.get("project_id")
 client = bigquery.Client(project=project_id)
 
