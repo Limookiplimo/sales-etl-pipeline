@@ -1,11 +1,15 @@
-import tomli
+try:
+    import tomli
+except ModuleNotFoundError:
+    import tomllib as tomli
+from datetime import datetime
+from dotenv import load_dotenv
 import pathlib
 import random
-from datetime import datetime
-import pytz
 import psycopg2
-from dotenv import load_dotenv
+import pytz
 import os
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 load_dotenv()
 host = os.environ.get("POSTGRES_HOST")
@@ -21,18 +25,21 @@ customers = data['customers']['customer']
 local_timezone = pytz.timezone("Africa/Nairobi")
 
 def create_orders_table(table_name, columns):
-    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
+    postgres_hook = PostgresHook(postgres_conn_id='sales_etl')
+    with postgres_hook.get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(f"create table if not exists {table_name}({','.join(columns)})")
 
 def load_orders_table(table_name, orders):
-    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
+    postgres_hook = PostgresHook(postgres_conn_id='sales_etl')
+    with postgres_hook.get_conn() as conn:
         with conn.cursor() as cur:
             cur.executemany(f"insert into {table_name} values({','.join(['%s'] * len(orders[0]))})", orders)
             conn.commit()
 
 def get_last_invoice_number():
-    with psycopg2.connect(host=host, port=port, database=database, user=user, password=password) as conn:
+    postgres_hook = PostgresHook(postgres_conn_id='sales_etl')
+    with postgres_hook.get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("select count(distinct invoice_number) from transactions")
             result = cur.fetchone()[0]
@@ -78,7 +85,7 @@ def generate_order_products():
     return order_data
 
 def load_to_database():
-    num_orders = 2
+    num_orders = 1
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
@@ -99,6 +106,3 @@ def load_to_database():
         order_data = generate_order_products()
         invoice_data.extend(order_data)
         load_orders_table("transactions", invoice_data)
-
-
-
