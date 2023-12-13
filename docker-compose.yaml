@@ -1,16 +1,6 @@
 version: "3.9"
-
+    
 services:
-  piper_db:
-    image: postgres:13.13
-    container_name: piper_db
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: etl_pipeline
-    ports:
-      - "5433:5432"
-
   cassandra:
     image: cassandra:latest
     container_name: cassandra
@@ -134,6 +124,7 @@ services:
       - AIRFLOW__CORE__DEFAULT_TIMEZONE=Africa/Nairobi
       - AIRFLOW_LOAD_EXAMPLES=no
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__WEBSERVER__WEB_SERVER_LOG_FETCH_TIMEOUT=30
     ports:
       - '8080:8080'
     volumes:
