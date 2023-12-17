@@ -1,4 +1,4 @@
-# ETL Pipeline for Stream Data Processing and BigQuery Integration
+# Stream Data Processing and BigQuery Integration
 ## Overview
 This project demonstrates an ETL pipeline for processing data using Apache Spark and integrating with Google BigQuery. The data is generated using a python script(`generator.py`), processed in real-time with Spark(`transformation.py`), stored in an intermediatestorage database on cassandra and finally loaded into Google BigQuery(`loading.py`).
 
