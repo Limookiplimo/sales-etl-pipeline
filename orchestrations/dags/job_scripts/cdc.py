@@ -6,7 +6,7 @@ connector_config = {
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
         "plugin.name": "pgoutput",
-        "database.hostname": "192.168.0.5",
+        "database.hostname": "172.19.0.3",
         "database.port": "5432",
         "database.user": "user",
         "database.password": "user_password",

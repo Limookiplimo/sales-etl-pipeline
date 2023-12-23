@@ -2,7 +2,6 @@ import sys
 sys.path.append('~/Documents/Projects/piper/orchestrations')
 
 from job_scripts.generator import load_to_database
-from job_scripts.transformation import main_transformations
 
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
@@ -28,14 +27,5 @@ task_1 = PythonOperator(
     python_callable=load_to_database,
     dag=dag
 )
-task_2 = SparkSubmitOperator(
-    task_id='process_data',
-    conn_id='spark_default',
-    application='./dags/job_scripts/transformation.py',
-    name='SparkJob',
-    executor_memory='4g',
-    num_executors=2,
-    dag=dag,
-)
 
-task_1 >> task_2
+task_1

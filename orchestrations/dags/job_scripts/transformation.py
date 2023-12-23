@@ -9,7 +9,7 @@ cassandra_keyspace = os.environ.get("CASSANDRA_KEYSPACE")
 cassandra_host = os.environ.get("CASSANDRA_HOST")
 cassandra_port = os.environ.get("CASSANDRA_PORT")
 kafka_server = os.environ.get("KAFKA_SERVER")
-kafka_topic = "postgres.public.transactions"
+kafka_topic = 'postgres.public.transactions'
 
 SALES_TABLE = "sales"
 TIME_TABLE = "time"
@@ -22,7 +22,6 @@ INVENTORY_TABLE = "inventory_track"
 def create_spark_session():
     return SparkSession.builder \
         .appName("SalesProcessing") \
-        .config("spark.master", "spark://localhost:7077") \
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0")\
         .config("spark.cassandra.connection.host", cassandra_host) \
         .config("spark.cassandra.connection.port", cassandra_port) \
@@ -140,27 +139,40 @@ def main_transformations():
                                    .withColumn("month", month(df_with_schema.order_date)) \
                                    .withColumn("year", year(df_with_schema.order_date))
     
-    sales_df = sales_fact(df_with_schema)
-    time_df = time_dim(df_with_schema)
-    customer_df = customer_dim(df_with_schema)
-    invoice_df = invoice_dim(df_with_schema)
-    logistics_df = logistics_dim(df_with_schema)
-    product_df = product_dim(df_with_schema)
-    inventory_df = inventory_track_dim(df_with_schema)
+    
+    # sales_df = sales_fact(df_with_schema)
+    # time_df = time_dim(df_with_schema)
+    # customer_df = customer_dim(df_with_schema)
+    # invoice_df = invoice_dim(df_with_schema)
+    # logistics_df = logistics_dim(df_with_schema)
+    # product_df = product_dim(df_with_schema)
+    # inventory_df = inventory_track_dim(df_with_schema)
 
-    sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, cassandra_keyspace)
-    time_query = write_to_intermediate_storage(time_df, TIME_TABLE, cassandra_keyspace)
-    customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, cassandra_keyspace)
-    invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, cassandra_keyspace)
-    logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, cassandra_keyspace)
-    products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, cassandra_keyspace)
-    inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, cassandra_keyspace)
+    # sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, cassandra_keyspace)
+    # time_query = write_to_intermediate_storage(time_df, TIME_TABLE, cassandra_keyspace)
+    # customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, cassandra_keyspace)
+    # invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, cassandra_keyspace)
+    # logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, cassandra_keyspace)
+    # products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, cassandra_keyspace)
+    # inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, cassandra_keyspace)
+    parsed_data.writeStream.outputMode("append").format("console").start().awaitTermination()
+    # sales_query = sales_df.writeStream .outputMode("complete").format("console").start()
+    # time_query = time_df.writeStream .outputMode("append").format("console").start()
+    # customer_query = customer_df.writeStream .outputMode("append").format("console").start()
+    # invoices_query = invoice_df.writeStream .outputMode("complete").format("console").start()
+    # logistics_query = logistics_df.writeStream .outputMode("complete").format("console").start()
+    # products_query = product_df.writeStream .outputMode("append").format("console").start()
+    # inventory_query = inventory_df.writeStream .outputMode("complete").format("console").start()
 
-    sales_query.awaitTermination()
-    time_query.awaitTermination()
-    customer_query.awaitTermination()
-    invoices_query.awaitTermination()
-    logistics_query.awaitTermination()
-    products_query.awaitTermination()
-    inventory_query.awaitTermination()
+    # main_df.awaitTermination()
+    # sales_query.awaitTermination()
+    # time_query.awaitTermination()
+    # customer_query.awaitTermination()
+    # invoices_query.awaitTermination()
+    # logistics_query.awaitTermination()
+    # products_query.awaitTermination()
+    # inventory_query.awaitTermination()
+
+main_transformations()
+
 

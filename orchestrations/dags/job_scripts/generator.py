@@ -82,7 +82,7 @@ def generate_order_products():
     return order_data
 
 def load_to_database():
-    num_orders = 1
+    num_orders = 10
     create_orders_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
@@ -103,3 +103,4 @@ def load_to_database():
         order_data = generate_order_products()
         invoice_data.extend(order_data)
         load_orders_table("transactions", invoice_data)
+
