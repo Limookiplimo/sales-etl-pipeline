@@ -21,13 +21,13 @@ products = data['products']['product']
 customers = data['customers']['customer']
 local_timezone = pytz.timezone("Africa/Nairobi")
 
-def create_orders_table(table_name, columns):
+def create_transactions_table(table_name, columns):
     postgres_hook = PostgresHook(postgres_conn_id='sales_etl')
     with postgres_hook.get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(f"create table if not exists {table_name}({','.join(columns)})")
 
-def load_orders_table(table_name, orders):
+def load_transactions_table(table_name, orders):
     postgres_hook = PostgresHook(postgres_conn_id='sales_etl')
     with postgres_hook.get_conn() as conn:
         with conn.cursor() as cur:
@@ -42,19 +42,19 @@ def get_last_invoice_number():
             result = cur.fetchone()[0]
             return result if result else 0
 
-def generate_invoice_number():
+def generate_new_invoice_number():
     last_invoice_number = get_last_invoice_number()
     last_invoice_number += 1
     invoice_number = f"INV{last_invoice_number:0005d}"
     return invoice_number
 
-def generate_order_products():
+def generate_invoice_products():
     customer = random.choice(customers)
     num_products = random.randint(1, len(products))
     selected_products = random.sample(products, num_products)
 
     order_data = []
-    invoice_number = generate_invoice_number()
+    invoice_number = generate_new_invoice_number()
 
     for product in selected_products:
         quantity = random.randint(1, 5)
@@ -82,8 +82,8 @@ def generate_order_products():
     return order_data
 
 def load_to_database():
-    num_orders = 10
-    create_orders_table("transactions", 
+    num_orders = 1
+    create_transactions_table("transactions", 
                         ["customer_name VARCHAR(255)",
                         "crm VARCHAR(255)",
                         "credit_limit FLOAT",
@@ -100,7 +100,6 @@ def load_to_database():
                         "total_price FLOAT"])
     invoice_data = []
     for _ in range(num_orders):
-        order_data = generate_order_products()
+        order_data = generate_invoice_products()
         invoice_data.extend(order_data)
-        load_orders_table("transactions", invoice_data)
-
+        load_transactions_table("transactions", invoice_data)

@@ -27,5 +27,12 @@ task_1 = PythonOperator(
     python_callable=load_to_database,
     dag=dag
 )
+task_2 = SparkSubmitOperator(
+    task_id='spark_script',
+    application='./job_scripts/transformation.py',
+    conn_id="spark_default",
+    verbose=False,
+    dag=dag,
+)
 
-task_1
+task_1 >> task_2
