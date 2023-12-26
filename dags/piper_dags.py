@@ -1,38 +1,38 @@
-from datetime import datetime, timedelta
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from generator import generate_order_products, load_to_database
+import sys
+sys.path.append('~/Documents/Projects/piper/orchestrations')
 
+from job_scripts.generator import load_to_database
+from job_scripts.transformation import main_transformations
+
+from airflow import DAG
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+import tomli
 
 default_args = {
-    'owner': 'limoo',
-    'start_date': datetime(2023,12,11),
-    'retries': 5,
-    'retry_delay': timedelta(minutes=5),
+    "owner": "limoo",
+    "start_date": datetime(2023,12,11),
+    "retry_delay": timedelta(minutes=1),
 }
-
 dag = DAG(
-    dag_id='piper_dags',
+    "generate_data",
     default_args=default_args,
     description='Orchestration of data generation, processing and persistence into a data warehouse',
-    schedule='*/3 * * * *',
+    schedule_interval="5 * * * *"
 )
 
-def generate_data():
-    generate_order_products()
-
-def populate_transaction_database():
-    load_to_database()
-
-with dag:
-    t1 = PythonOperator(
-        task_id='generate_data',
-        provide_context=True,
-        python_callable=generate_data,
-    )
-    t2 = PythonOperator(
-        task_id='persist_data',
-        provide_context=True,
-        python_callable=populate_transaction_database,
-    )
-t1 >> t2
+# task_1 = PythonOperator(
+#     task_id='generate_data',
+#     provide_context=True,
+#     python_callable=load_to_database,
+#     dag=dag
+# )
+# task_2 = SparkSubmitOperator(
+#     task_id='spark_script',
+#     application='dags/job_scripts/transformation.py',
+#     conn_id="spark_default",
+#     verbose=False,
+#     dag=dag,
+# )
+# task_1
