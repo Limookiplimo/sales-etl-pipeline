@@ -6,8 +6,8 @@ connector_config = {
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
         "plugin.name": "pgoutput",
-        "database.hostname": "172.19.0.4",
-        "database.port": "5433",
+        "database.hostname": "172.18.0.5",
+        "database.port": "5432",
         "database.user": "user",
         "database.password": "user_password",
         "database.dbname": "etl_pipeline",

@@ -22,7 +22,7 @@ INVENTORY_TABLE = "inventory_track"
 def create_spark_session():
     return SparkSession.builder \
         .appName("SalesProcessing") \
-        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0")\
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.35.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0")\
         .config("spark.cassandra.connection.host", cassandra_host) \
         .config("spark.cassandra.connection.port", cassandra_port) \
         .getOrCreate()
