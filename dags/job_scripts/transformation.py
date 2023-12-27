@@ -148,21 +148,13 @@ def main_transformations():
     product_df = product_dim(df_with_schema)
     inventory_df = inventory_track_dim(df_with_schema)
 
-    # sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, cassandra_keyspace)
-    # time_query = write_to_intermediate_storage(time_df, TIME_TABLE, cassandra_keyspace)
-    # customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, cassandra_keyspace)
-    # invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, cassandra_keyspace)
-    # logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, cassandra_keyspace)
-    # products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, cassandra_keyspace)
-    # inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, cassandra_keyspace)
-
-    sales_query = sales_df.writeStream .outputMode("complete").format("console").start()
-    time_query = time_df.writeStream .outputMode("append").format("console").start()
-    customer_query = customer_df.writeStream .outputMode("append").format("console").start()
-    invoices_query = invoice_df.writeStream .outputMode("complete").format("console").start()
-    logistics_query = logistics_df.writeStream .outputMode("complete").format("console").start()
-    products_query = product_df.writeStream .outputMode("append").format("console").start()
-    inventory_query = inventory_df.writeStream .outputMode("complete").format("console").start()
+    sales_query = write_aggregations_to_intermediate_storage(sales_df, SALES_TABLE, cassandra_keyspace)
+    time_query = write_to_intermediate_storage(time_df, TIME_TABLE, cassandra_keyspace)
+    customer_query = write_to_intermediate_storage(customer_df, CUSTOMER_TABLE, cassandra_keyspace)
+    invoices_query = write_aggregations_to_intermediate_storage(invoice_df, INVOICES_TABLE, cassandra_keyspace)
+    logistics_query = write_aggregations_to_intermediate_storage(logistics_df, LOGISTICS_TABLE, cassandra_keyspace)
+    products_query = write_to_intermediate_storage(product_df, PRODUCTS_TABLE, cassandra_keyspace)
+    inventory_query = write_aggregations_to_intermediate_storage(inventory_df, INVENTORY_TABLE, cassandra_keyspace)
 
     sales_query.awaitTermination()
     time_query.awaitTermination()
@@ -171,7 +163,5 @@ def main_transformations():
     logistics_query.awaitTermination()
     products_query.awaitTermination()
     inventory_query.awaitTermination()
-
-main_transformations()
 
 

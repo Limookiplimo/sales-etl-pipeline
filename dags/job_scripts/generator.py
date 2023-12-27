@@ -103,5 +103,3 @@ def load_to_database():
         order_data = generate_invoice_products()
         invoice_data.extend(order_data)
         load_transactions_table("transactions", invoice_data)
-
-load_to_database()
