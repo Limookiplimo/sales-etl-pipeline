@@ -8,6 +8,9 @@ RUN apt-get update && \
     rm -rf /var/cache/oracle-jdk8-installer && \
     export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which java))))" && \
     echo "export JAVA_HOME=$JAVA_HOME" >> /etc/profile
+RUN mkdir -p /opt/spark/logs && \
+    chmod 755 /opt/spark/logs && \
+    chown airflow:airflow /opt/spark/logs
 RUN wget https://downloads.apache.org/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz && \
     tar -xvzf spark-3.5.0-bin-hadoop3.tgz && \
     mv spark-3.5.0-bin-hadoop3 /opt/spark && \
